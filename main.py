@@ -192,13 +192,13 @@ async def callback_handlers(bot: Client, cb: CallbackQuery):
             text="Please Wait ..."
         )
         duration = 0
-        list_message_ids = QueueDB.get(cb.from_user.id, None)
-        list_message_ids.sort()
-        input_ = f"{Config.DOWN_PATH}/{cb.from_user.id}/input.txt"
-        if list_message_ids is None:
+        list_message_ids = QueueDB.get(cb.from_user.id, [])
+        if not list_message_ids:
             await cb.answer("Queue Empty!", show_alert=True)
             await cb.message.delete(True)
             return
+        list_message_ids.sort()
+        input_ = f"{Config.DOWN_PATH}/{cb.from_user.id}/input.txt"
         if len(list_message_ids) < 2:
             await cb.answer("Only One Video You Sent for Merging!", show_alert=True)
             await cb.message.delete(True)
@@ -395,8 +395,13 @@ async def callback_handlers(bot: Client, cb: CallbackQuery):
         except ValueError:
             await cb.answer("Your Queue Empty Unkil!", show_alert=True)
     elif cb.data.startswith("removeFile_"):
-        if (QueueDB.get(cb.from_user.id, None) is not None) or (QueueDB.get(cb.from_user.id) != []):
-            QueueDB.get(cb.from_user.id).remove(int(cb.data.split("_", 1)[-1]))
+        queue = QueueDB.get(cb.from_user.id, [])
+        if queue:
+            message_id_to_remove = int(cb.data.split("_", 1)[-1])
+            try:
+                queue.remove(message_id_to_remove)
+            except ValueError:
+                pass
             await cb.message.edit(
                 text="File removed from queue!",
                 reply_markup=InlineKeyboardMarkup(
